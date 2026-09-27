@@ -7,8 +7,6 @@
 
 Physical mechatronic testbed and control architecture for experimental research and validation of **nonlinear control (Åström-Furuta Lyapunov Energy Swing-Up)**, **asymptotic optimal control (5-State CARE LQR with anti-drift integral action)**, and **nonlinear state estimation (3-State EKF at 200 Hz)** on a motorized MGN12 linear rail.
 
-Serves as an experimental benchmark for canonical underactuated robotics and **humanoid biped locomotion dynamics (Linear Inverted Pendulum Model - LIPM)**.
-
 ---
 
 ## System Identification & Physical Constants

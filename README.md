@@ -89,8 +89,10 @@ inverted-pendulum-testbed/
 │   └── src/
 │       └── main.cpp               # Timer1 (50 kHz), 4800 PPR encoder ISR, 200 Hz EKF + LQR
 
-├── simulation/                    # RK4 numerical simulation & dynamic benchmark
+├── simulation/                    # RK4 simulation, interactive GUI & serial telemetry
 │   ├── simulate_pendulum.py       # YAML-driven simulation with disturbance injection
+│   ├── interactive_gui.py         # Real-time 2D animated simulation with keyboard controls
+│   ├── live_telemetry.py          # Real-time serial telemetry dashboard from hardware
 │   └── benchmark_dynamics.png     # Disturbance response plots
 ├── cad/                           # 3D mechanical models and CAD assembly
 │   └── README.md
@@ -102,16 +104,27 @@ inverted-pendulum-testbed/
 
 ## Quickstart
 
-### 1. Run Nonlinear Dynamic Simulation (Python)
+### 1. Interactive 2D Simulation (Real-Time Animation)
 ```bash
 # Install dependencies
 pip install -r requirements.txt
 
-# Run simulation and regenerate benchmark plots
+# Launch interactive 2D simulation with keyboard perturbation
+python simulation/interactive_gui.py
+```
+*Keyboard shortcuts: `Left`/`Right` to move cart target, `Up`/`Down` to inject push disturbance, `S` for full Lyapunov swing-up from bottom, `R` to reset, `Space` to pause.*
+
+### 2. Numerical Benchmark & Disturbance Rejection
+```bash
 python simulation/simulate_pendulum.py
 ```
 
-### 2. Build & Flash Embedded Firmware (PlatformIO)
+### 3. Live Hardware Telemetry Dashboard
+```bash
+python simulation/live_telemetry.py /dev/ttyUSB0
+```
+
+### 4. Build & Flash Embedded Firmware (PlatformIO)
 ```bash
 cd firmware
 pio run -t upload

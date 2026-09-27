@@ -1,4 +1,4 @@
-# ⚖️ Inverted Pendulum Mechatronic Testbed (Linear Rail MGN12)
+# Inverted Pendulum Mechatronic Testbed (Linear Rail MGN12)
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/)
@@ -11,7 +11,7 @@ Serves as an experimental benchmark for canonical underactuated robotics and **h
 
 ---
 
-## 📊 System Identification & Physical Constants
+## System Identification & Physical Constants
 
 | Parameter | Symbol | Identified Value | Units | Description |
 | :--- | :---: | :---: | :---: | :--- |
@@ -28,7 +28,7 @@ Serves as an experimental benchmark for canonical underactuated robotics and **h
 
 ---
 
-## 🔬 Control Architecture
+## Control Architecture
 
 ```
                   +-------------------------------------------------------------+
@@ -76,7 +76,7 @@ $$\lambda(A_{\text{cl}}) = \{-40.98, -4.64, -0.13, -0.68 \pm 0.76j\}$$
 
 ---
 
-## 🗂️ Repository Structure
+## Repository Structure
 
 ```
 inverted-pendulum-testbed/
@@ -100,7 +100,7 @@ inverted-pendulum-testbed/
 
 ---
 
-## 🚀 Quickstart
+## Quickstart
 
 ### 1. Run Nonlinear Dynamic Simulation (Python)
 ```bash
@@ -120,7 +120,7 @@ pio device monitor -b 115200
 
 ---
 
-## 👤 Author
+## Author
 **Karim Laiti**  
 *M.Sc. Control Engineering & Robotics — Sapienza University of Rome*  
 *B.Sc. Automation Engineering — University of Bologna*  

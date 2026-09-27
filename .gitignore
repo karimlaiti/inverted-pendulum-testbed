@@ -1,0 +1,22 @@
+# PlatformIO build directories
+.pio/
+.pioenvs/
+.piolibdeps/
+
+# Python cache & virtual environments
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+env/
+
+# IDE & Editor settings
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db

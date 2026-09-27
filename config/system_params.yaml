@@ -1,0 +1,55 @@
+# ==============================================================================
+# INVERTED PENDULUM PARAMETERS CONFIGURATION
+# ==============================================================================
+
+physical_system:
+  cart_mass_M: 0.380         # Massa carrello + blocco MGN12H + encoder mount [kg]
+  pendulum_mass_m: 0.020     # Massa asta carbonio 200mm (7g) + dado 10g + collarino (3g) [kg]
+  pendulum_length_L: 0.20    # Lunghezza totale asta [m]
+  pendulum_com_l: 0.135      # Distanza centro di massa da fulcro [m]
+  pendulum_inertia_J: 0.0004933 # Momento d'inerzia attorno al perno [kg*m^2]
+  gravity_g: 9.81            # Accelerazione di gravita' [m/s^2]
+  cart_friction_b: 0.12      # Coefficiente attrito viscoso carrello [N*s/m]
+  pivot_friction_c: 0.0008   # Coefficiente attrito viscoso perno [N*m*s/rad]
+
+rail_limits:
+  total_length_m: 0.65       # Lunghezza totale guida MGN12 [m]
+  safe_stroke_m: 0.50        # Corsa utile di sicurezza (+-0.25m dal centro) [m]
+  emergency_limit_m: 0.28    # Limite di cutoff software di emergenza [m]
+
+actuator_nema17:
+  holding_torque_Nm: 0.40    # Coppia di tenuta statica [N*m]
+  pulley_teeth: 20           # Denti puleggia GT2
+  pulley_pitch_m: 0.002      # Passo cinghia GT2 (2 mm)
+  pulley_radius_r: 0.006366  # Raggio primitivo puleggia (r = 20*0.002 / (2*pi)) [m]
+  max_force_N: 9.5           # Forza massima continua erogabile [N]
+
+sensors:
+  encoder_omch:
+    resolution_ppr: 1200     # 1200 P/R ottico (4800 counts / giro in quadratura 4x)
+    degrees_per_count: 0.075 # Risoluzione angolare [deg]
+  sampling_frequency_hz: 500 # Frequenza di campionamento e controllo (dt = 2 ms)
+  dt_seconds: 0.002
+
+control_parameters:
+  lqr:
+    # Pesi matrice Q (x_integral, x, v, theta, omega)
+    Q: [0.50, 350.0, 45.0, 350.0, 20.0]
+    # Peso matrice R (sforzo di controllo su accelerazione)
+    R: 0.50
+    # Guadagni LQR 5-stati asintotici validati al banco:
+    # a_cmd = (K_theta * theta + K_omega * omega) + (K_x * x + K_v * v + K_xi * x_integral)
+    K_theta: 60.00
+    K_omega: 9.50
+    K_x: 4.50
+    K_v: 6.50
+    K_xi: 0.50
+    K_vector: [0.50, 4.50, 6.50, 60.00, 9.50]
+
+  swing_up:
+    energy_gain_kE: 35.0     # Guadagno pompaggio di energia di Lyapunov
+    target_energy_E0: 0.0530 # Energia target al vertice: E0 = 2 * m * g * l [J]
+
+  supervisor:
+    catch_angle_deg: 20.0    # Angolo di commutazione tra Swing-Up e LQR [deg]
+    catch_angle_rad: 0.34906 # Angolo di commutazione in radianti

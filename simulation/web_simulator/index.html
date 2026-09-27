@@ -1,0 +1,825 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Inverted Pendulum Mechatronic Simulator | 5-State LQR & Lyapunov Swing-Up</title>
+  <style>
+    :root {
+      --bg: #090d16;
+      --card-bg: rgba(17, 24, 39, 0.85);
+      --card-border: rgba(59, 130, 246, 0.2);
+      --cyan: #00e5ff;
+      --emerald: #10b981;
+      --amber: #f59e0b;
+      --rose: #ef4444;
+      --text: #f3f4f6;
+      --text-muted: #94a3b8;
+      --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+      --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+    }
+
+    body {
+      background: radial-gradient(circle at 50% 20%, #111827 0%, var(--bg) 100%);
+      color: var(--text);
+      font-family: var(--font-sans);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 24px;
+      overflow-x: hidden;
+    }
+
+    header {
+      width: 100%;
+      max-width: 1100px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      margin-bottom: 20px;
+      padding-bottom: 14px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .title-group h1 {
+      font-size: 22px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .title-group p {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-top: 4px;
+    }
+
+    .badge-bar {
+      display: flex;
+      gap: 8px;
+    }
+
+    .badge {
+      font-size: 11px;
+      font-family: var(--font-mono);
+      padding: 4px 10px;
+      border-radius: 6px;
+      border: 1px solid var(--card-border);
+      background: rgba(15, 23, 42, 0.6);
+      color: var(--cyan);
+    }
+
+    .main-grid {
+      width: 100%;
+      max-width: 1100px;
+      display: grid;
+      grid-template-columns: 1fr 320px;
+      gap: 20px;
+    }
+
+    .canvas-container {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 12px;
+      position: relative;
+      overflow: hidden;
+      box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.6);
+      display: flex;
+      flex-direction: column;
+    }
+
+    canvas#simCanvas {
+      width: 100%;
+      height: 480px;
+      cursor: crosshair;
+      display: block;
+    }
+
+    .hud-overlay {
+      position: absolute;
+      top: 14px;
+      left: 16px;
+      pointer-events: none;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .mode-indicator {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      font-weight: 600;
+      padding: 5px 12px;
+      border-radius: 20px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    }
+
+    .mode-lqr {
+      background: rgba(16, 185, 129, 0.15);
+      border: 1px solid rgba(16, 185, 129, 0.5);
+      color: var(--emerald);
+    }
+
+    .mode-swing {
+      background: rgba(245, 158, 11, 0.15);
+      border: 1px solid rgba(245, 158, 11, 0.5);
+      color: var(--amber);
+    }
+
+    .mode-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: currentColor;
+      box-shadow: 0 0 8px currentColor;
+    }
+
+    .telemetry-row {
+      display: flex;
+      gap: 16px;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--text-muted);
+      background: rgba(9, 13, 22, 0.85);
+      padding: 8px 14px;
+      border-radius: 8px;
+      border: 1px solid rgba(255,255,255,0.06);
+    }
+
+    .telemetry-row span b {
+      color: #fff;
+    }
+
+    .controls-panel {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .panel-card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 12px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .panel-card h3 {
+      font-size: 13px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-muted);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .btn-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    button {
+      background: rgba(30, 41, 59, 0.7);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      color: var(--text);
+      padding: 9px 12px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+
+    button:hover {
+      background: rgba(59, 130, 246, 0.2);
+      border-color: rgba(59, 130, 246, 0.4);
+      color: #fff;
+      transform: translateY(-1px);
+    }
+
+    button:active {
+      transform: translateY(0);
+    }
+
+    button.primary {
+      background: linear-gradient(135deg, rgba(16, 185, 129, 0.3), rgba(6, 182, 212, 0.3));
+      border-color: var(--emerald);
+      color: #fff;
+      font-weight: 600;
+    }
+
+    button.primary:hover {
+      background: linear-gradient(135deg, rgba(16, 185, 129, 0.5), rgba(6, 182, 212, 0.5));
+      box-shadow: 0 0 15px rgba(16, 185, 129, 0.3);
+    }
+
+    .param-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 12px;
+      color: var(--text-muted);
+      font-family: var(--font-mono);
+    }
+
+    .param-row span:last-child {
+      color: #fff;
+    }
+
+    .energy-bar-wrap {
+      margin-top: 4px;
+      height: 8px;
+      width: 100%;
+      background: rgba(255,255,255,0.06);
+      border-radius: 4px;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .energy-bar-fill {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, var(--cyan), var(--emerald));
+      transition: width 0.05s ease;
+    }
+
+    .energy-target-line {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      left: 100%;
+      width: 2px;
+      background: #fff;
+      box-shadow: 0 0 4px #fff;
+    }
+
+    .keyboard-hint {
+      font-size: 11px;
+      color: var(--text-muted);
+      line-height: 1.6;
+    }
+
+    kbd {
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      padding: 1px 5px;
+      border-radius: 4px;
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: #fff;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="title-group">
+      <h1>Inverted Pendulum Mechatronic Testbed</h1>
+      <p>5-State Continuous CARE LQR & Åström-Furuta Lyapunov Energy Swing-Up</p>
+    </div>
+    <div class="badge-bar">
+      <div class="badge">MGN12H Rail (650mm)</div>
+      <div class="badge">TMC2209 @ 24V</div>
+      <div class="badge">4800 PPR Encoder</div>
+    </div>
+  </header>
+
+  <div class="main-grid">
+    <!-- Canvas Area -->
+    <div class="canvas-container">
+      <div class="hud-overlay">
+        <div id="modeIndicator" class="mode-indicator mode-swing">
+          <div class="mode-dot"></div>
+          <span id="modeText">SWING-UP (LYAPUNOV)</span>
+        </div>
+        <div class="telemetry-row">
+          <span>&theta;: <b id="valTheta">180.0&deg;</b></span>
+          <span>&omega;: <b id="valOmega">0.0 rad/s</b></span>
+          <span>x: <b id="valX">0.0 cm</b></span>
+          <span>a: <b id="valA">0.0 m/s&sup2;</b></span>
+        </div>
+      </div>
+      <canvas id="simCanvas" width="1500" height="960"></canvas>
+    </div>
+
+    <!-- Controls Panel -->
+    <div class="controls-panel">
+      <!-- State Controls -->
+      <div class="panel-card">
+        <h3>Simulation Actions</h3>
+        <button id="btnStartBottom" class="primary">
+          <span>&#8635;</span> Start from Bottom (180&deg;)
+        </button>
+        <div class="btn-grid">
+          <button id="btnPushLeft">&larr; Tap Left (-3 rad/s)</button>
+          <button id="btnPushRight">Tap Right (+3 rad/s) &rarr;</button>
+        </div>
+        <div class="btn-grid">
+          <button id="btnPause">Space: Pause</button>
+          <button id="btnReset">Reset (x = 0)</button>
+        </div>
+      </div>
+
+      <!-- Energy & Catch Cone -->
+      <div class="panel-card">
+        <h3>
+          <span>Mechanical Energy</span>
+          <span id="lblEnergyPercent">0%</span>
+        </h3>
+        <div class="energy-bar-wrap">
+          <div id="energyBar" class="energy-bar-fill"></div>
+        </div>
+        <div class="param-row">
+          <span>Target E<sub>0</sub></span>
+          <span>0.0530 J</span>
+        </div>
+        <div class="param-row">
+          <span>Catch Cone</span>
+          <span style="color: var(--emerald);">&plusmn;22.0&deg;</span>
+        </div>
+      </div>
+
+      <!-- Physical Parameters -->
+      <div class="panel-card">
+        <h3>System Constants</h3>
+        <div class="param-row"><span>Rod Mass (m)</span><span>0.020 kg (20g)</span></div>
+        <div class="param-row"><span>Rod Length (L)</span><span>0.200 m (20cm)</span></div>
+        <div class="param-row"><span>Center of Mass (l)</span><span>0.135 m (13.5cm)</span></div>
+        <div class="param-row"><span>Inertia (J)</span><span>4.933 &times; 10<sup>-4</sup> kg&middot;m&sup2;</span></div>
+        <div class="param-row"><span>Natural Freq (&omega;<sub>0</sub>)</span><span>7.328 rad/s</span></div>
+        <div class="param-row"><span>Cart Mass (M)</span><span>0.380 kg</span></div>
+      </div>
+
+      <!-- Hotkeys Info -->
+      <div class="panel-card">
+        <h3>Interactive Hotkeys</h3>
+        <div class="keyboard-hint">
+          &bull; <kbd>S</kbd> : Trigger autonomous swing-up from bottom<br>
+          &bull; <kbd>&uarr;</kbd> / <kbd>&darr;</kbd> : Inject angular disturbance (&plusmn;3 rad/s)<br>
+          &bull; <kbd>&larr;</kbd> / <kbd>&rarr;</kbd> : Nudge cart setpoint on rail<br>
+          &bull; <kbd>Space</kbd> : Pause / resume simulation<br>
+          &bull; <b>Mouse Drag</b>: Grab the rod tip or cart to pull manually!
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // System Identification Parameters
+    const M = 0.380;          // Cart mass (kg)
+    const m = 0.020;          // Pendulum mass (kg)
+    const L = 0.200;          // Total rod length (m)
+    const l = 0.135;          // Center of mass distance (m)
+    const J = 0.0004933;      // Moment of inertia (kg*m^2)
+    const g = 9.81;
+    const b_c = 0.10;         // Rail damping
+    const b_p = 0.0007;       // Bearing damping
+    const E0 = 2.0 * m * g * l; // 0.053007 J
+    const RAIL_LIMIT = 0.30;  // +/- 30 cm stroke (65 cm rail total)
+
+    // 5-State LQR Optimal CARE Feedback Gains
+    const K_th = 62.43;
+    const K_w  = 9.50;
+    const K_x  = 11.58;
+    const K_v  = 12.09;
+    const K_xi = 1.41;
+
+    // Simulation State: [xi, x, v, theta, omega]
+    // START AT REST AT BOTTOM: theta = Math.PI (180 deg), omega = 0
+    let state = [0.0, 0.0, 0.0, Math.PI, 0.0];
+    let target_x = 0.0;
+    let mode = 'SWING';
+    let isPaused = false;
+    let commanded_a = 0.0;
+    let lastTime = performance.now();
+
+    // Mouse Dragging State
+    let isDragging = false;
+    let dragMode = null; // 'cart' or 'rod'
+
+    const canvas = document.getElementById('simCanvas');
+    const ctx = canvas.getContext('2d');
+
+    // UI Elements
+    const modeIndicator = document.getElementById('modeIndicator');
+    const modeText = document.getElementById('modeText');
+    const valTheta = document.getElementById('valTheta');
+    const valOmega = document.getElementById('valOmega');
+    const valX = document.getElementById('valX');
+    const valA = document.getElementById('valA');
+    const energyBar = document.getElementById('energyBar');
+    const lblEnergyPercent = document.getElementById('lblEnergyPercent');
+
+    // Full Nonlinear Euler-Lagrange Physics
+    function rk4Step(st, a_cmd, dt) {
+      function deriv(s) {
+        const [xi, x, v, th, w] = s;
+        const sin_th = Math.sin(th);
+        const cos_th = Math.cos(th);
+        // Angular acceleration driven by kinematic cart acceleration
+        const w_dot = (m * g * l * sin_th - b_p * w - m * l * a_cmd * cos_th) / J;
+        return [x - target_x, v, a_cmd, w, w_dot];
+      }
+
+      const k1 = deriv(st);
+      const s2 = st.map((val, idx) => val + 0.5 * dt * k1[idx]);
+      const k2 = deriv(s2);
+      const s3 = st.map((val, idx) => val + 0.5 * dt * k2[idx]);
+      const k3 = deriv(s3);
+      const s4 = st.map((val, idx) => val + dt * k3[idx]);
+      const k4 = deriv(s4);
+
+      return st.map((val, idx) => val + (dt / 6.0) * (k1[idx] + 2 * k2[idx] + 2 * k3[idx] + k4[idx]));
+    }
+
+    function updatePhysics(dt) {
+      if (isPaused || isDragging) return;
+
+      let [xi, x, v, th, w] = state;
+      let th_norm = ((th + Math.PI) % (2 * Math.PI));
+      if (th_norm < 0) th_norm += 2 * Math.PI;
+      th_norm -= Math.PI;
+
+      const th_deg = th_norm * 180.0 / Math.PI;
+      // Mechanical Energy with zero at bottom (th = PI)
+      const E_mech = 0.5 * J * w * w + m * g * l * (Math.cos(th_norm) - 1.0); // 0 at top, -E0 at bottom
+      const energy_level = Math.max(0, Math.min(1.0, (E_mech + E0) / E0));
+
+      // Update Energy Bar UI
+      energyBar.style.width = (energy_level * 100).toFixed(1) + '%';
+      lblEnergyPercent.innerText = (energy_level * 100).toFixed(0) + '%';
+
+      // Hybrid Supervisor: State Machine Transition
+      if (mode === 'SWING') {
+        if (Math.abs(th_deg) < 22.0 && Math.abs(w) < 4.0) {
+          mode = 'LQR';
+          state[0] = 0.0; // reset cart position integral
+        }
+      } else {
+        if (Math.abs(th_deg) > 28.0) {
+          mode = 'SWING';
+          state[0] = 0.0;
+        }
+      }
+
+      // Control Law Synthesis
+      if (mode === 'LQR') {
+        modeIndicator.className = 'mode-indicator mode-lqr';
+        modeText.innerText = 'LQR BALANCING (CARE ACTIVE)';
+        
+        // 5-State LQR full state feedback
+        commanded_a = (K_th * th_norm + K_w * w) + (K_x * (x - target_x) + K_v * v + K_xi * xi);
+      } else {
+        modeIndicator.className = 'mode-indicator mode-swing';
+        modeText.innerText = 'SWING-UP (RESONANT LYAPUNOV)';
+
+        if (Math.abs(th_deg) > 170.0 && Math.abs(w) < 0.15) {
+          // Initial kick when motionless at bottom
+          commanded_a = (x - target_x <= 0) ? 3.5 : -3.5;
+        } else {
+          // Unified resonant energy pump: opposite sign to w * cos(th_norm)
+          const sgn = (w * Math.cos(th_norm) >= 0.0) ? 1.0 : -1.0;
+          const a_pump = - 6.5 * sgn;
+          // Centering spring + damping to stay on rail
+          commanded_a = a_pump - 4.5 * (x - target_x) - 2.2 * v;
+        }
+      }
+
+      // Actuator Saturation Limit (+/- 12.0 m/s^2)
+      commanded_a = Math.max(-12.0, Math.min(12.0, commanded_a));
+
+      // Substepped RK4
+      const sub = 8;
+      const sub_dt = dt / sub;
+      for (let i = 0; i < sub; i++) {
+        state = rk4Step(state, commanded_a, sub_dt);
+        // Hardware rail physical stops
+        if (state[1] > RAIL_LIMIT) {
+          state[1] = RAIL_LIMIT;
+          state[2] = 0.0;
+        } else if (state[1] < -RAIL_LIMIT) {
+          state[1] = -RAIL_LIMIT;
+          state[2] = 0.0;
+        }
+      }
+
+      // Update Telemetry Displays
+      valTheta.innerHTML = `${(th_norm * 180 / Math.PI).toFixed(1)}&deg;`;
+      valOmega.innerHTML = `${state[4].toFixed(2)} rad/s`;
+      valX.innerHTML = `${(state[1] * 100).toFixed(1)} cm`;
+      valA.innerHTML = `${commanded_a.toFixed(2)} m/s&sup2;`;
+    }
+
+    // High-DPI Canvas Rendering Loop
+    function render() {
+      const w = canvas.width;
+      const h = canvas.height;
+      ctx.clearRect(0, 0, w, h);
+
+      const centerX = w / 2;
+      const railY = h * 0.58;
+      const scale = w * 1.6; // Scale factor meters -> pixels
+
+      const [xi, x, v, th, omega] = state;
+
+      // 1. Draw Rail Structure (Aluminum 2020 extrusion + MGN12 Guide)
+      const railPixelW = 0.65 * scale;
+      const railLeft = centerX - railPixelW / 2;
+      const railRight = centerX + railPixelW / 2;
+
+      // Extrusion profile
+      ctx.fillStyle = '#1e293b';
+      ctx.fillRect(railLeft, railY - 10, railPixelW, 26);
+      ctx.strokeStyle = '#334155';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(railLeft, railY - 10, railPixelW, 26);
+
+      // Shiny linear guide MGN12
+      const mgn12Grad = ctx.createLinearGradient(0, railY - 6, 0, railY + 6);
+      mgn12Grad.addColorStop(0, '#94a3b8');
+      mgn12Grad.addColorStop(0.5, '#f8fafc');
+      mgn12Grad.addColorStop(1, '#64748b');
+      ctx.fillStyle = mgn12Grad;
+      ctx.fillRect(railLeft, railY - 4, railPixelW, 8);
+
+      // Red Safety Endstops (+/- 25 cm)
+      const limitPx = RAIL_LIMIT * scale;
+      ctx.fillStyle = '#ef4444';
+      ctx.fillRect(centerX - limitPx - 8, railY - 16, 10, 22);
+      ctx.fillRect(centerX + limitPx - 2, railY - 16, 10, 22);
+
+      // Target Line
+      const targetPx = centerX + target_x * scale;
+      ctx.strokeStyle = 'rgba(16, 185, 129, 0.4)';
+      ctx.setLineDash([6, 6]);
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(targetPx, railY - 140);
+      ctx.lineTo(targetPx, railY + 60);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      // 2. Cart (Carriage Platform)
+      const cartX = centerX + x * scale;
+      const cartW = 0.08 * scale;
+      const cartH = 0.04 * scale;
+      const cartY = railY - cartH;
+
+      // Carriage block
+      const cartGrad = ctx.createLinearGradient(cartX - cartW/2, 0, cartX + cartW/2, 0);
+      cartGrad.addColorStop(0, '#0284c7');
+      cartGrad.addColorStop(0.5, '#38bdf8');
+      cartGrad.addColorStop(1, '#0369a1');
+      ctx.fillStyle = cartGrad;
+      ctx.beginPath();
+      ctx.roundRect(cartX - cartW/2, cartY, cartW, cartH, 6);
+      ctx.fill();
+      ctx.strokeStyle = '#bae6fd';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+
+      // Pivot Axis (OMCH Encoder Body)
+      const pivotX = cartX;
+      const pivotY = cartY + cartH / 2;
+
+      // Visual LQR Catch Cone at Pivot (+/- 22 deg)
+      ctx.fillStyle = (mode === 'LQR') ? 'rgba(16, 185, 129, 0.15)' : 'rgba(16, 185, 129, 0.07)';
+      ctx.beginPath();
+      ctx.moveTo(pivotX, pivotY);
+      const coneR = L * scale * 1.15;
+      const catchRad = 22.0 * Math.PI / 180.0;
+      ctx.arc(pivotX, pivotY, coneR, -Math.PI/2 - catchRad, -Math.PI/2 + catchRad);
+      ctx.closePath();
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(16, 185, 129, 0.35)';
+      ctx.stroke();
+
+      // Force Vector Arrow
+      if (Math.abs(commanded_a) > 0.1) {
+        const forceLen = commanded_a * 8.0;
+        ctx.strokeStyle = '#f59e0b';
+        ctx.lineWidth = 4;
+        ctx.beginPath();
+        ctx.moveTo(pivotX, pivotY);
+        ctx.lineTo(pivotX + forceLen, pivotY);
+        ctx.stroke();
+        // Arrow head
+        const arrSign = Math.sign(forceLen);
+        ctx.fillStyle = '#f59e0b';
+        ctx.beginPath();
+        ctx.moveTo(pivotX + forceLen + arrSign * 6, pivotY);
+        ctx.lineTo(pivotX + forceLen, pivotY - 4);
+        ctx.lineTo(pivotX + forceLen, pivotY + 4);
+        ctx.closePath();
+        ctx.fill();
+      }
+
+      // 3. Pendulum Rod (Carbon Fiber)
+      // theta = 0 is UP (+Y in inverted screen space), theta = PI is DOWN
+      const rodPixelL = L * scale;
+      const tipX = pivotX + rodPixelL * Math.sin(th);
+      const tipY = pivotY - rodPixelL * Math.cos(th);
+
+      // Rod Shadow / Glow
+      ctx.strokeStyle = 'rgba(0, 0, 0, 0.5)';
+      ctx.lineWidth = 10;
+      ctx.beginPath();
+      ctx.moveTo(pivotX + 3, pivotY + 3);
+      ctx.lineTo(tipX + 3, tipY + 3);
+      ctx.stroke();
+
+      // Carbon Fiber Tube
+      ctx.strokeStyle = '#f8fafc';
+      ctx.lineWidth = 7;
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(pivotX, pivotY);
+      ctx.lineTo(tipX, tipY);
+      ctx.stroke();
+
+      // Carbon weave inner stripe
+      ctx.strokeStyle = '#334155';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(pivotX, pivotY);
+      ctx.lineTo(tipX, tipY);
+      ctx.stroke();
+
+      // Encoder Hub Center
+      ctx.fillStyle = '#0f172a';
+      ctx.beginPath();
+      ctx.arc(pivotX, pivotY, 12, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = '#f59e0b';
+      ctx.lineWidth = 2.5;
+      ctx.stroke();
+
+      // Tip Brass Nut (10g mass)
+      const tipGrad = ctx.createRadialGradient(tipX - 2, tipY - 2, 2, tipX, tipY, 12);
+      tipGrad.addColorStop(0, '#fecdd3');
+      tipGrad.addColorStop(0.5, '#e11d48');
+      tipGrad.addColorStop(1, '#881337');
+      ctx.fillStyle = tipGrad;
+      ctx.beginPath();
+      ctx.arc(tipX, tipY, 11, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = '#fda4af';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    }
+
+    // Animation Loop
+    function loop(now) {
+      const dt = Math.min((now - lastTime) / 1000.0, 0.033);
+      lastTime = now;
+
+      updatePhysics(dt);
+      render();
+
+      requestAnimationFrame(loop);
+    }
+    requestAnimationFrame(loop);
+
+    // Button Actions
+    document.getElementById('btnStartBottom').onclick = () => {
+      // Start strictly from bottom at rest
+      state = [0.0, 0.0, 0.0, Math.PI, 0.0];
+      target_x = 0.0;
+      mode = 'SWING';
+      isPaused = false;
+    };
+
+    document.getElementById('btnPushLeft').onclick = () => {
+      state[4] -= 3.0; // Perturbation tap
+    };
+
+    document.getElementById('btnPushRight').onclick = () => {
+      state[4] += 3.0;
+    };
+
+    document.getElementById('btnPause').onclick = (e) => {
+      isPaused = !isPaused;
+      e.target.innerText = isPaused ? 'Space: Resume' : 'Space: Pause';
+    };
+
+    document.getElementById('btnReset').onclick = () => {
+      state = [0.0, 0.0, 0.0, Math.PI, 0.0];
+      target_x = 0.0;
+      mode = 'SWING';
+    };
+
+    // Keyboard Shortcuts
+    window.addEventListener('keydown', (e) => {
+      if (e.key === ' ' || e.code === 'Space') {
+        isPaused = !isPaused;
+        document.getElementById('btnPause').innerText = isPaused ? 'Space: Resume' : 'Space: Pause';
+      } else if (e.key === 's' || e.key === 'S') {
+        state = [0.0, 0.0, 0.0, Math.PI, 0.0];
+        target_x = 0.0;
+        mode = 'SWING';
+      } else if (e.key === 'r' || e.key === 'R') {
+        state[0] = 0.0;
+        state[1] = 0.0;
+        state[2] = 0.0;
+        target_x = 0.0;
+      } else if (e.key === 'ArrowUp') {
+        state[4] += 3.0;
+      } else if (e.key === 'ArrowDown') {
+        state[4] -= 3.0;
+      } else if (e.key === 'ArrowLeft') {
+        target_x = Math.max(-0.20, target_x - 0.04);
+      } else if (e.key === 'ArrowRight') {
+        target_x = Math.min(0.20, target_x + 0.04);
+      }
+    });
+
+    // Mouse Interaction (Click & Drag Rod or Cart)
+    canvas.addEventListener('mousedown', (e) => {
+      const rect = canvas.getBoundingClientRect();
+      const clickX = (e.clientX - rect.left) * (canvas.width / rect.width);
+      const clickY = (e.clientY - rect.top) * (canvas.height / rect.height);
+
+      const centerX = canvas.width / 2;
+      const railY = canvas.height * 0.58;
+      const scale = canvas.width * 1.6;
+
+      const cartX = centerX + state[1] * scale;
+      const cartY = railY - 0.04 * scale;
+
+      const pivotX = cartX;
+      const pivotY = cartY + (0.04 * scale) / 2;
+      const tipX = pivotX + L * scale * Math.sin(state[3]);
+      const tipY = pivotY - L * scale * Math.cos(state[3]);
+
+      // Check click on tip
+      const distTip = Math.hypot(clickX - tipX, clickY - tipY);
+      if (distTip < 30) {
+        isDragging = true;
+        dragMode = 'rod';
+        return;
+      }
+
+      // Check click on cart
+      if (Math.abs(clickX - cartX) < 40 && Math.abs(clickY - cartY) < 30) {
+        isDragging = true;
+        dragMode = 'cart';
+      }
+    });
+
+    window.addEventListener('mousemove', (e) => {
+      if (!isDragging) return;
+      const rect = canvas.getBoundingClientRect();
+      const mouseX = (e.clientX - rect.left) * (canvas.width / rect.width);
+      const mouseY = (e.clientY - rect.top) * (canvas.height / rect.height);
+
+      const centerX = canvas.width / 2;
+      const railY = canvas.height * 0.58;
+      const scale = canvas.width * 1.6;
+
+      if (dragMode === 'cart') {
+        const newX = (mouseX - centerX) / scale;
+        state[1] = Math.max(-RAIL_LIMIT, Math.min(RAIL_LIMIT, newX));
+        state[2] = 0.0; // reset velocity
+      } else if (dragMode === 'rod') {
+        const cartX = centerX + state[1] * scale;
+        const pivotY = railY - 0.04 * scale + (0.04 * scale) / 2;
+        const dx = mouseX - cartX;
+        const dy = -(mouseY - pivotY);
+        // Angle from upright
+        state[3] = Math.atan2(dx, dy);
+        state[4] = 0.0;
+      }
+    });
+
+    window.addEventListener('mouseup', () => {
+      isDragging = false;
+      dragMode = null;
+    });
+  </script>
+</body>
+</html>

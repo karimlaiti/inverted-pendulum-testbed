@@ -91,9 +91,11 @@ inverted-pendulum-testbed/
 
 ├── simulation/                    # RK4 simulation, interactive GUI & serial telemetry
 │   ├── simulate_pendulum.py       # YAML-driven simulation with disturbance injection
-│   ├── interactive_gui.py         # Real-time 2D animated simulation with keyboard controls
+│   ├── interactive_gui.py         # Hardware-accelerated PySide6 2D simulator with live oscilloscope
 │   ├── live_telemetry.py          # Real-time serial telemetry dashboard from hardware
-│   └── benchmark_dynamics.png     # Disturbance response plots
+│   ├── benchmark_dynamics.png     # Disturbance response plots
+│   └── web_simulator/
+│       └── index.html             # Standalone zero-dependency HTML5/Canvas interactive simulator
 ├── cad/                           # 3D mechanical models and CAD assembly
 │   └── README.md
 ├── requirements.txt
@@ -104,22 +106,30 @@ inverted-pendulum-testbed/
 
 ## Quickstart
 
-### 1. Interactive 2D Simulation (Real-Time Animation)
+### 1. Interactive Desktop Simulation (Python + PySide6)
+Starts at rest from the bottom ($\theta = 180^\circ$), performs resonant energy swing-up, and catches into 5-state LQR balancing:
 ```bash
 # Install dependencies
 pip install -r requirements.txt
 
-# Launch interactive 2D simulation with keyboard perturbation
+# Launch PySide6 interactive simulator
 python simulation/interactive_gui.py
 ```
-*Keyboard shortcuts: `Left`/`Right` to move cart target, `Up`/`Down` to inject push disturbance, `S` for full Lyapunov swing-up from bottom, `R` to reset, `Space` to pause.*
+*Interactive controls: Mouse drag on cart or pendulum tip to inject arbitrary perturbations in real time, buttons for impulse disturbance ($\pm 3\,\text{N}$), target cart setpoint slider, and live oscilloscope for angle $\theta(t)$ and position $x(t)$.*
 
-### 2. Numerical Benchmark & Disturbance Rejection
+### 2. Zero-Dependency Web Simulator (HTML5 / Canvas)
+Open `simulation/web_simulator/index.html` directly in any modern browser (Chrome, Firefox, Safari) with zero installation required:
+```bash
+# Launch via browser directly
+xdg-open simulation/web_simulator/index.html
+```
+
+### 3. Numerical Benchmark & Disturbance Rejection
 ```bash
 python simulation/simulate_pendulum.py
 ```
 
-### 3. Live Hardware Telemetry Dashboard
+### 4. Live Hardware Telemetry Dashboard
 ```bash
 python simulation/live_telemetry.py /dev/ttyUSB0
 ```

@@ -1,4 +1,0 @@
-(sym_lib_table
-  (version 7)
-  (lib (name "pendolo_inverso")(type "KiCad")(uri "${KIPRJMOD}/pendolo_inverso.kicad_sym")(options "")(descr "Project custom symbols"))
-)

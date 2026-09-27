@@ -88,9 +88,7 @@ inverted-pendulum-testbed/
 │   ├── platformio.ini             # ESP8266 build configuration (80 MHz)
 │   └── src/
 │       └── main.cpp               # Timer1 (50 kHz), 4800 PPR encoder ISR, 200 Hz EKF + LQR
-├── hardware/                      # KiCad Carrier Board electronics project
-│   ├── pendolo_inverso_carrier.kicad_sch
-│   └── schematic.pdf              # Full hardware schematic
+
 ├── simulation/                    # RK4 numerical simulation & dynamic benchmark
 │   ├── simulate_pendulum.py       # YAML-driven simulation with disturbance injection
 │   └── benchmark_dynamics.png     # Disturbance response plots

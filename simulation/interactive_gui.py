@@ -3,9 +3,11 @@
 Interactive 2D Real-Time Simulation: Inverted Pendulum on Linear Rail
 Author: Karim Laiti (Sapienza University of Rome)
 Features:
-- Full nonlinear Euler-Lagrange equations of motion
-- Åström-Furuta Lyapunov energy swing-up & CARE LQR balancing
-- Keyboard controls: Arrow keys to perturb/move, 'S' for swing-up, 'R' to reset, Space to pause
+- Physical system parameters loaded from config/system_params.yaml (m=20g, l=13.5cm)
+- Full nonlinear Euler-Lagrange equations of motion (RK4)
+- Åström-Furuta Lyapunov energy swing-up with resonant pumping
+- Continuous CARE LQR balancing around upright vertical
+- Keyboard controls: Left/Right to move target, Up/Down to push, 'S' for swing-up, 'R' to reset, Space to pause
 """
 
 import os
@@ -16,27 +18,27 @@ import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 from matplotlib.patches import Rectangle, Circle
 
-# Load physical parameters
+# Load physical parameters from YAML
 CONFIG_PATH = os.path.join(os.path.dirname(__file__), "..", "config", "system_params.yaml")
 with open(CONFIG_PATH, "r") as f:
     config = yaml.safe_load(f)
 
 phys = config["physical_system"]
-M = float(phys["cart_mass_M"])          # 0.380 kg
-m = float(phys["pendulum_mass_m"])      # 0.020 kg
-L = float(phys["pendulum_length_L"])    # 0.200 m
-l = float(phys["pendulum_com_l"])       # 0.135 m
-J = float(phys["pendulum_inertia_J"])   # 0.0004933 kg*m^2
+M = float(phys["cart_mass_M"])          # 0.380 kg (cart + carriage + encoder mount)
+m = float(phys["pendulum_mass_m"])      # 0.020 kg (7g rod + 10g tip nut + 3g hub)
+L = float(phys["pendulum_length_L"])    # 0.200 m (rod length)
+l = float(phys["pendulum_com_l"])       # 0.135 m (center of mass distance)
+J = float(phys["pendulum_inertia_J"])   # 0.0004933 kg*m^2 (inertia at pivot)
 g = float(phys["gravity_g"])            # 9.81 m/s^2
-b_c = float(phys["cart_friction_b"])    # 0.12 N*s/m
-b_p = float(phys["pivot_friction_c"])   # 0.0008 N*m*s/rad
+b_c = float(phys["cart_friction_b"])    # 0.12 N*s/m (rail friction)
+b_p = float(phys["pivot_friction_c"])   # 0.0008 N*m*s/rad (encoder bearing friction)
 
 RAIL_LIMIT = 0.25 # Safety rail stroke (+- 25 cm from center)
-MAX_FORCE = 9.5   # NEMA 17 force limit (N)
+MAX_FORCE = 9.5   # NEMA 17 continuous force limit (N)
 
 det0 = (M + m) * J - (m * l)**2
 
-# Linearized state-space model around upright vertical (theta = 0)
+# Linearized continuous state-space around vertical upright (theta = 0)
 A = np.array([
     [0.0, 1.0, 0.0, 0.0],
     [0.0, -b_c * J / det0, -(m**2 * g * l**2) / det0, b_p * m * l / det0],
@@ -51,18 +53,21 @@ B = np.array([
     [-m * l / det0]
 ])
 
-# Optimal LQR State Weights
-Q = np.diag([200.0, 20.0, 400.0, 25.0])
-R = np.array([[0.08]])
+# Optimal LQR Weights
+Q = np.diag([160.0, 18.0, 420.0, 22.0])
+R = np.array([[0.05]])
 
 # Solve Continuous Algebraic Riccati Equation (CARE)
 P_care = scipy.linalg.solve_continuous_are(A, B, Q, R)
 K = (np.linalg.inv(R) @ B.T @ P_care)[0]
 
-E0_target = 2.0 * m * g * l
+E0_target = 2.0 * m * g * l # 0.0530 J
 
-print(f"CARE Synthesized LQR Gain Vector: {np.round(K, 2)}")
-print(f"Target Lyapunov Energy E0: {E0_target:.4f} J")
+print("=== Inverted Pendulum Real-Time Simulator ===")
+print(f"Cart Mass M: {M:.3f} kg | Pendulum Mass m: {m:.3f} kg")
+print(f"Center of Mass l: {l:.3f} m | Moment of Inertia J: {J:.7f} kg*m^2")
+print(f"Target Swing-Up Energy E0: {E0_target:.4f} J")
+print(f"CARE Optimal Feedback K: {np.round(K, 2)}")
 
 # Nonlinear Euler-Lagrange RK4 integrator
 def rk4_step(state, u, dt):
@@ -110,8 +115,8 @@ ax.grid(True, linestyle=':', color='#334155', alpha=0.6)
 
 # Rail & Base
 rail_y = -0.04
-ax.fill_between([-0.325, 0.325], rail_y - 0.02, rail_y, color='#475569', zorder=2) # 2020 extrusion
-ax.fill_between([-0.325, 0.325], rail_y, rail_y + 0.008, color='#94a3b8', zorder=3) # MGN12 rail
+ax.fill_between([-0.325, 0.325], rail_y - 0.02, rail_y, color='#475569', zorder=2)
+ax.fill_between([-0.325, 0.325], rail_y, rail_y + 0.008, color='#94a3b8', zorder=3)
 
 # Limit switches
 ax.scatter([-RAIL_LIMIT, RAIL_LIMIT], [rail_y + 0.015, rail_y + 0.015], color='#ef4444', s=90, zorder=4, marker='s')
@@ -147,13 +152,14 @@ def on_key(event):
     elif event.key == 'left':
         target_x = max(target_x - 0.03, -RAIL_LIMIT + 0.04)
     elif event.key == 'up':
-        state[3] += 3.0
+        state[3] += 3.0 # Perturbation tap
     elif event.key == 'down':
         state[3] -= 3.0
     elif event.key == 'r':
         state = np.array([0.0, 0.0, np.radians(12.0), 0.0])
         target_x = 0.0
     elif event.key == 's':
+        # Start swing-up test from bottom
         state = np.array([0.0, 0.0, np.pi, 0.0])
         target_x = 0.0
     elif event.key == ' ':
@@ -174,16 +180,23 @@ def animate(frame):
         x, v, th, w = state
         th_norm = (th + np.pi) % (2 * np.pi) - np.pi
         
-        # Check angle for LQR catch (|th| < 20 deg = 0.349 rad)
-        if abs(th_norm) < 0.349:
+        # Catch condition: angle within 22 deg and angular velocity reasonable
+        if abs(th_norm) < 0.384 and abs(w) < 4.2:
             active_mode = "LQR (Balancing)"
             err_state = np.array([x - target_x, v, th_norm, w])
             u = - float(np.dot(K, err_state))
         else:
-            active_mode = "SWING_UP (Energy)"
-            E = 0.5 * J * (w**2) + m * g * l * (1.0 - np.cos(th_norm))
-            sgn = 1.0 if (w * np.cos(th_norm) >= 0) else -1.0
-            u = 25.0 * (E - E0_target) * sgn - 12.0 * (x - target_x) - 4.0 * v
+            active_mode = "SWING_UP (Lyapunov Energy)"
+            if abs(np.degrees(th_norm)) > 155.0 and abs(w) < 0.2:
+                # Initial kick to break symmetry at rest
+                u_pump = 4.0 if (x - target_x) <= 0 else -4.0
+            else:
+                E = 0.5 * J * (w**2) + m * g * l * (1.0 - np.cos(th_norm))
+                deficit = np.clip((E0_target - E) / E0_target, 0.2, 1.0)
+                # Resonant pumping
+                u_pump = (1.0 if w >= 0 else -1.0) * (5.5 * deficit)
+            # Cart soft centering spring
+            u = u_pump - 6.0 * (x - target_x) - 2.0 * v
             
         u = float(np.clip(u, -MAX_FORCE, MAX_FORCE))
         
@@ -224,17 +237,17 @@ def animate(frame):
     force_line.set_data([pivot_x, pivot_x + f_len], [pivot_y, pivot_y])
     
     info_txt = (
-        f"INVERTED PENDULUM REAL-TIME SIMULATOR\n"
-        f"-------------------------------------\n"
-        f"Control Mode  : {active_mode}\n"
-        f"Elapsed Time  : {time_elapsed:5.1f} s\n"
+        f"INVERTED PENDULUM MECHATRONIC SIMULATOR\n"
+        f"---------------------------------------\n"
+        f"Mode          : {active_mode}\n"
+        f"Time Elapsed  : {time_elapsed:5.1f} s\n"
         f"Cart Pos (x)  : {x*100:+5.1f} cm (Target: {target_x*100:+5.1f} cm)\n"
         f"Angle (theta) : {th_deg:+5.1f} deg\n"
         f"Ang Vel (w)   : {w:+5.2f} rad/s\n"
         f"Motor Force   : {u:+5.2f} N (Max +- {MAX_FORCE} N)\n"
-        f"-------------------------------------\n"
+        f"---------------------------------------\n"
         f"Left / Right  : Move cart position target\n"
-        f"Up / Down     : Apply external impulse disturbance\n"
+        f"Up / Down     : Apply impulse push disturbance\n"
         f"S             : Test Lyapunov Swing-Up from rest\n"
         f"R             : Reset initial tilt (12 deg)\n"
         f"Space         : Pause / Resume"

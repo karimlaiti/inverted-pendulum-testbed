@@ -318,23 +318,17 @@ $$u_{\text{total}} = \operatorname{sat}_{a_{\text{max}}}\Big( k_e \cdot (E - E_{
 
 ## 8. Firmware Architecture & Line-by-Line Code Mapping
 
-The complete firmware lives in [`src/firmware/esp8266_swingup_lqr/src/main.cpp`](file:///home/karim/Documents/Projects/pendolo_inverso/src/firmware/esp8266_swingup_lqr/src/main.cpp).
+The complete firmware lives in [`firmware/src/main.cpp`](firmware/src/main.cpp).
 
-```
- +-----------------------------------------------------------------------+
- |                 ESP8266 SYSTEM THREAD (80 MHz)                        |
- |                                                                       |
- |   [ Hardware Timer1 ISR @ 50 kHz ] <--- Bresenham DDA Step Generator  |
- |   [ GPIO Change ISR @ 4800 PPR ]   <--- Encoder 4-bit State Table     |
- |                                                                       |
- |   [ Real-Time Control Loop @ 200 Hz (dt = 5ms) ]                      |
- |     1. Atomic Step & Encoder Reading                                  |
- |     2. Non-linear Kalman Filter (EKF update)                          |
- |     3. State Machine Supervisor (SWING_UP vs LQR_BALANCE)             |
- |     4. Asymptotic 5-State LQR Computation                             |
- |     5. Low-Phase-Lag Velocity Integration                             |
- +-----------------------------------------------------------------------+
-```
+The real-time execution model runs on the ESP8266 (80 MHz) organized into prioritized tasks:
+- **Hardware Timer1 ISR ($50\text{ kHz}$)**: High-frequency Bresenham DDA step generator.
+- **GPIO Change ISR ($4800\text{ PPR}$)**: 4-bit optical encoder quadrature state table.
+- **Real-Time Control Loop ($200\text{ Hz}$, $\Delta t = 5\text{ ms}$)**:
+  1. Atomic step and encoder position capture
+  2. Nonlinear Extended Kalman Filter (EKF) state estimation
+  3. Supervisory state machine transition (`SWING_UP` vs `LQR_BALANCE`)
+  4. 5-state CARE LQR control law computation
+  5. Low-phase-lag velocity integration
 
 ### 8.1 Key Firmware Code Excerpts
 

@@ -28,32 +28,12 @@ Physical mechatronic testbed and control architecture for experimental research 
 
 ## Control Architecture
 
-```
-                  +-------------------------------------------------------------+
-                  |               NONLINEAR STATE OBSERVER (EKF)                |
-                  |     Estimates [theta, omega, theta_bias] at 200 Hz          |
-                  +------------------------------+------------------------------+
-                                                 |
-                       [ |theta| > 22 deg ]      |      [ |theta| < 22 deg ]
-                  +------------------------------+------------------------------+
-                  |                                                             |
-                  v                                                             v
-+------------------------------------+        +-------------------------------------------------+
-|       STATE_SWING_UP               |        |               STATE_LQR_BALANCE                 |
-|  Åström-Furuta Energy Shaping      |        |        5-State Asymptotic Continuous CARE       |
-|  - Deficit-modulated pump accel    |  --->  |  - Integrates cart position error (x_integral)  |
-|  - Soft-limit centering spring     |  <---  |  - Full LHP pole placement (Re(lambda) < 0)     |
-+------------------------------------+        +-------------------------------------------------+
-                  |                                                             |
-                  +------------------------------+------------------------------+
-                                                 |
-                                                 v
-                               +-----------------------------------+
-                               |     HARDWARE TIMER1 (50 kHz)      |
-                               |  Interrupt-driven step engine     |
-                               |  Direct STEP/DIR -> TMC2209 @ 24V |
-                               +-----------------------------------+
-```
+The system operates as a hybrid finite-state machine (FSM) transitioning between nonlinear energy pumping and asymptotic linear balancing:
+
+- **State Estimation ($200\text{ Hz}$)**: 3-state Extended Kalman Filter (EKF) estimating pendulum angle $\theta$, angular velocity $\omega$, and sensor bias.
+- **Energy Swing-Up ($|\theta| > 22^\circ$)**: Åström-Furuta Lyapunov energy shaping with deficit-modulated cart acceleration and soft-limit boundary centering.
+- **LQR Balance ($|\theta| \le 22^\circ$)**: 5-state continuous CARE LQR with cart position integral action ($x_I$) for zero steady-state tracking error and full left-half-plane pole placement.
+- **Actuation ($50\text{ kHz}$)**: Hardware Timer1 interrupt step engine generating direct STEP/DIR pulses for the TMC2209 driver at $24\text{V}$.
 
 ### 1. 5-State LQR Balance Synthesis
 To prevent limit-cycle oscillations caused by non-minimum phase zero dynamics, the system is modeled with extended cart integral action:

@@ -63,14 +63,22 @@ inverted-pendulum-testbed/
 ├── docs/
 │   └── theory_and_firmware_guide.md # Comprehensive Lagrangian derivations and EKF proofs
 ├── firmware/                      # Production embedded C++ firmware (PlatformIO)
-│   ├── platformio.ini             # ESP8266 build configuration (80 MHz)
+│   ├── platformio.ini             # ESP8266 build configuration (80 MHz, 460800 baud flash)
+│   ├── include/                   # Modular C++ control & estimation headers
+│   │   ├── config.h               # Hardware pinout, system ID constants, and gain parameters
+│   │   ├── controllers.h          # Hybrid FSM supervisor, 5-state LQR & Lyapunov swing-up
+│   │   ├── ekf_estimator.h        # 3-state EKF observer with phase unwrap
+│   │   ├── encoder.h              # OMCH optical encoder 4-bit quadrature decoder ISR
+│   │   ├── serial_cli.h           # 10 Hz telemetry streaming & runtime CLI
+│   │   └── stepper_timer.h        # 50 kHz Timer1 hardware step generator
 │   └── src/
-│       └── main.cpp               # Timer1 (50 kHz), 4800 PPR encoder ISR, 200 Hz EKF + LQR
-
+│       └── main.cpp               # Main setup and 200 Hz real-time control loop
 ├── simulation/                    # RK4 simulation, interactive GUI & serial telemetry
 │   ├── simulate_pendulum.py       # YAML-driven simulation with disturbance injection
 │   ├── interactive_gui.py         # Hardware-accelerated PySide6 2D simulator with live oscilloscope
 │   ├── live_telemetry.py          # Real-time serial telemetry dashboard from hardware
+│   ├── render_swiss_industrial_simulation.py # Swiss/IEEE academic video render generator
+│   ├── render_complete_swingup_video.py      # 60fps swing-up & LQR balance video renderer
 │   ├── benchmark_dynamics.png     # Disturbance response plots
 │   └── web_simulator/
 │       └── index.html             # Standalone zero-dependency HTML5/Canvas interactive simulator

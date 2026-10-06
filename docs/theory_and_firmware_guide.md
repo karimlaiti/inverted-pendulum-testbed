@@ -318,7 +318,7 @@ $$u_{\text{total}} = \operatorname{sat}_{a_{\text{max}}}\Big( k_e \cdot (E - E_{
 
 ## 8. Firmware Architecture & Line-by-Line Code Mapping
 
-The complete firmware lives in [`firmware/src/main.cpp`](firmware/src/main.cpp).
+The complete firmware lives in [`firmware/src/main.cpp`](firmware/src/main.cpp) and modular headers under [`firmware/include/`](firmware/include/).
 
 The real-time execution model runs on the ESP8266 (80 MHz) organized into prioritized tasks:
 - **Hardware Timer1 ISR ($50\text{ kHz}$)**: High-frequency Bresenham DDA step generator.

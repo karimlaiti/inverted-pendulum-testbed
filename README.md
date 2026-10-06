@@ -42,15 +42,19 @@ $$z = \begin{bmatrix} x_I & x & v & \theta & \omega \end{bmatrix}^T$$
 $$a_{\text{cmd}} = (K_\theta \theta + K_\omega \omega) + (K_x x + K_v v + K_{xi} x_I)$$
 
 Tuned feedback gains:
-$$K = \begin{bmatrix} 0.50 & 4.50 & 6.50 & 60.00 & 9.50 \end{bmatrix}$$
+$$K = \begin{bmatrix} 1.80 & 12.50 & 12.20 & 62.43 & 9.50 \end{bmatrix}$$
 
 **Closed-Loop Eigenvalues**:
-$$\lambda(A_{\text{cl}}) = \{-40.98, -4.64, -0.13, -0.68 \pm 0.76j\}$$
+$$\lambda(A_{\text{cl}}) = \{-34.53, -3.01, -0.17, -1.85 \pm 1.42j\}$$
 *All 5 poles reside strictly in the Left Half Plane ($\operatorname{Re}(\lambda) < 0$), proving asymptotic stability.*
 
 ### 2. Nonlinear Dynamics Benchmark
 
-![Dynamics Benchmark](simulation/benchmark_dynamics.png)
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="simulation/benchmark_dynamics_dark.png">
+  <source media="(prefers-color-scheme: light)" srcset="simulation/benchmark_dynamics.png">
+  <img alt="Inverted Pendulum Dynamics Benchmark" src="simulation/benchmark_dynamics.png">
+</picture>
 
 ---
 
@@ -79,7 +83,8 @@ inverted-pendulum-testbed/
 │   ├── live_telemetry.py          # Real-time serial telemetry dashboard from hardware
 │   ├── render_swiss_industrial_simulation.py # Swiss/IEEE academic video render generator
 │   ├── render_complete_swingup_video.py      # 60fps swing-up & LQR balance video renderer
-│   ├── benchmark_dynamics.png     # Disturbance response plots
+│   ├── benchmark_dynamics.png     # Disturbance response plots (IEEE Light)
+│   ├── benchmark_dynamics_dark.png # Disturbance response plots (Swiss Dark HUD)
 │   └── web_simulator/
 │       └── index.html             # Standalone zero-dependency HTML5/Canvas interactive simulator
 ├── cad/                           # 3D mechanical models and CAD assembly
